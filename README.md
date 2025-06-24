@@ -56,7 +56,9 @@
 
 ## 📸 Screenshots
 
-> _Add screenshots of the dashboard, customer/product/order modules, and login page here for visual appeal._
+![Dashboard](assets/1.png)
+![Customer Module](assets/2.png)
+![Product Module](assets/3.png)
 
 ---
 
