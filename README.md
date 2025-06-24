@@ -1,4 +1,4 @@
-# ERP MEAN Docker
+# Simple ERP
 
 ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
@@ -6,7 +6,7 @@
 
 ## 🚀 Project Overview
 
-**ERP MEAN Docker** is a full-stack, containerized ERP (Enterprise Resource Planning) application built with the MEAN stack (MongoDB, Express.js, Angular, Node.js) and orchestrated with Docker. It provides a modular, scalable, and modern solution for managing products, customers, and orders, with authentication and role-based access control.
+**Simple ERP** is a full-stack, containerized ERP (Enterprise Resource Planning) application built with the MEAN stack (MongoDB, Express.js, Angular, Node.js) and orchestrated with Docker. It provides a modular, scalable, and modern solution for managing products, customers, and orders, with authentication and role-based access control.
 
 ---
 
@@ -36,8 +36,8 @@
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/johndrubo/erp-mean-docker.git
-   cd erp-mean-docker
+   git clone https://github.com/johndrubo/simple-erp.git
+   cd simple-erp
    ```
 
 2. **Configure environment variables:**
