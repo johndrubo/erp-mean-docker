@@ -1,0 +1,28 @@
+<div class="customer-form">
+  <h2>{{ isEdit ? 'Edit Customer' : 'Add Customer' }}</h2>
+  <form [formGroup]="customerForm" (ngSubmit)="onSubmit()">
+    <div>
+      <label>Name:</label>
+      <input formControlName="name" required />
+    </div>
+    <div>
+      <label>Email:</label>
+      <input formControlName="email" required type="email" />
+    </div>
+    <div>
+      <label>Phone:</label>
+      <input formControlName="phone" />
+    </div>
+    <div>
+      <label>Address:</label>
+      <input formControlName="address" />
+    </div>
+    <div>
+      <label>Company:</label>
+      <input formControlName="company" />
+    </div>
+    <div *ngIf="error" class="error">{{ error }}</div>
+    <button type="submit" [disabled]="customerForm.invalid">{{ isEdit ? 'Update' : 'Add' }}</button>
+    <button type="button" (click)="router.navigate(['/customers'])">Cancel</button>
+  </form>
+</div>

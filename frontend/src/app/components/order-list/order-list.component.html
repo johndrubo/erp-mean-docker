@@ -1,0 +1,400 @@
+<div class="order-container">
+  <div class="header">
+    <h2>Orders Management</h2>
+    <button (click)="showCreateForm = !showCreateForm" class="btn btn-primary">
+      {{ showCreateForm ? 'Cancel' : 'Create Order' }}
+    </button>
+  </div>
+
+  <!-- Create Order Form -->
+  <div *ngIf="showCreateForm" class="create-form">
+    <h3>Create New Order</h3>
+    
+    <!-- Add Item Section -->
+    <div class="add-item-section">
+      <h4>Add Items to Order</h4>
+      <div class="item-form">
+        <div class="form-group">
+          <label for="productSelect">Product:</label>
+          <select id="productSelect" [(ngModel)]="newOrderItem.product" class="form-control">
+            <option value="">Select a product</option>
+            <option *ngFor="let product of products" [value]="product._id">
+              {{ product.name }} ({{ product.sku }}) - ${{ product.price.toFixed(2) }} - Stock: {{ product.stock }}
+            </option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="quantity">Quantity:</label>
+          <input type="number" id="quantity" [(ngModel)]="newOrderItem.quantity" min="1" class="form-control">
+        </div>
+        <button type="button" (click)="addItemToOrder()" [disabled]="!newOrderItem.product || newOrderItem.quantity < 1" class="btn btn-secondary">
+          Add Item
+        </button>
+      </div>
+    </div>
+
+    <!-- Order Items List -->
+    <div *ngIf="newOrder.items.length > 0" class="order-items">
+      <h4>Order Items</h4>
+      <div class="items-list">
+        <div *ngFor="let item of newOrder.items; let i = index" class="order-item">
+          <span class="item-name">{{ getProductName(item.product) }}</span>
+          <span class="item-quantity">Qty: {{ item.quantity }}</span>
+          <span class="item-price">${{ (getProductPrice(item.product) * item.quantity).toFixed(2) }}</span>
+          <button (click)="removeItemFromOrder(i)" class="btn btn-danger btn-sm">Remove</button>
+        </div>
+      </div>
+      <div class="order-total">
+        <strong>Total: ${{ calculateOrderTotal().toFixed(2) }}</strong>
+      </div>
+      <div class="form-actions">
+        <button (click)="createOrder()" class="btn btn-primary">Create Order</button>
+        <button (click)="resetOrderForm(); showCreateForm = false" class="btn btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Orders List -->
+  <div class="orders-list">
+    <div *ngIf="loading" class="loading">Loading orders...</div>
+    
+    <div *ngIf="!loading && orders.length === 0" class="no-orders">
+      <p>No orders found. Create your first order!</p>
+    </div>
+
+    <div *ngIf="!loading && orders.length > 0" class="orders-grid">
+      <div *ngFor="let order of orders" class="order-card">
+        <div class="order-header">
+          <h3>Order #{{ order._id.slice(-6) }}</h3>
+          <span class="order-status" [ngClass]="getStatusClass(order.status)">{{ order.status | titlecase }}</span>
+        </div>
+        
+        <div class="order-info">
+          <p><strong>Customer:</strong> {{ order.customer.name }} ({{ order.customer.email }})</p>
+          <p><strong>Date:</strong> {{ order.createdAt | date:'medium' }}</p>
+          <p><strong>Total:</strong> ${{ order.total.toFixed(2) }}</p>
+        </div>
+
+        <div class="order-items-display">
+          <h4>Items:</h4>
+          <div *ngFor="let item of order.items" class="item-display">
+            <span class="item-name">{{ item.product.name }}</span>
+            <span class="item-details">{{ item.quantity }}x @ ${{ item.product.price.toFixed(2) }}</span>
+          </div>
+        </div>
+
+        <!-- Status Management (Admin/Manager only) -->
+        <div *ngIf="canManageOrders()" class="status-management">
+          <label for="statusSelect-{{ order._id }}">Update Status:</label>
+          <select [id]="'statusSelect-' + order._id" [value]="order.status" (change)="updateOrderStatus(order, statusSelect.value)" #statusSelect class="form-control status-select">
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="shipped">Shipped</option>
+            <option value="delivered">Delivered</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .order-container {
+    background: white;
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 1rem;
+  }
+
+  .header h2 {
+    margin: 0;
+    color: #2c3e50;
+  }
+
+  .create-form {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    border: 1px solid #e9ecef;
+  }
+
+  .create-form h3 {
+    margin-top: 0;
+    color: #2c3e50;
+  }
+
+  .add-item-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .add-item-section h4 {
+    margin-bottom: 1rem;
+    color: #34495e;
+  }
+
+  .item-form {
+    display: grid;
+    grid-template-columns: 2fr 1fr auto;
+    gap: 1rem;
+    align-items: end;
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+  }
+
+  .form-control:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+  }
+
+  label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #333;
+  }
+
+  .btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    text-decoration: none;
+    display: inline-block;
+    margin-right: 0.5rem;
+    transition: all 0.2s;
+  }
+
+  .btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  .btn-primary {
+    background-color: #3498db;
+    color: white;
+  }
+
+  .btn-secondary {
+    background-color: #95a5a6;
+    color: white;
+  }
+
+  .btn-danger {
+    background-color: #e74c3c;
+    color: white;
+  }
+
+  .btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+
+  .btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .order-items {
+    background: white;
+    padding: 1rem;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+  }
+
+  .order-items h4 {
+    margin-top: 0;
+    color: #34495e;
+  }
+
+  .items-list {
+    margin-bottom: 1rem;
+  }
+
+  .order-item {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr auto;
+    gap: 1rem;
+    align-items: center;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+  }
+
+  .item-name {
+    font-weight: 500;
+  }
+
+  .item-quantity, .item-price {
+    font-size: 0.9rem;
+    color: #666;
+  }
+
+  .order-total {
+    text-align: right;
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: #e8f5e8;
+    border-radius: 4px;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .loading {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+    font-size: 1.1rem;
+  }
+
+  .no-orders {
+    text-align: center;
+    padding: 3rem;
+    color: #666;
+  }
+
+  .orders-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .order-card {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1.5rem;
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .order-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  }
+
+  .order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+  }
+
+  .order-header h3 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.1rem;
+  }
+
+  .order-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+
+  .status-pending {
+    background: #fff3cd;
+    color: #856404;
+  }
+
+  .status-confirmed {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  .status-shipped {
+    background: #d1ecf1;
+    color: #0c5460;
+  }
+
+  .status-delivered {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  .status-cancelled {
+    background: #f8d7da;
+    color: #721c24;
+  }
+
+  .order-info p {
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+  }
+
+  .order-items-display {
+    margin: 1rem 0;
+  }
+
+  .order-items-display h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    color: #34495e;
+  }
+
+  .item-display {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+    margin-bottom: 0.25rem;
+    font-size: 0.9rem;
+  }
+
+  .item-name {
+    font-weight: 500;
+  }
+
+  .item-details {
+    color: #666;
+  }
+
+  .status-management {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+  }
+
+  .status-management label {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .status-select {
+    font-size: 0.9rem;
+    padding: 0.5rem;
+  }
+</style>

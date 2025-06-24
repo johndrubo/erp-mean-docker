@@ -1,0 +1,322 @@
+<div class="product-container">
+  <div class="header">
+    <h2>Products Management</h2>
+    <button *ngIf="canModifyProducts()" (click)="showAddForm = !showAddForm" class="btn btn-primary">
+      {{ showAddForm ? 'Cancel' : 'Add Product' }}
+    </button>
+  </div>
+
+  <!-- Add Product Form -->
+  <div *ngIf="showAddForm" class="add-form">
+    <h3>Add New Product</h3>
+    <form (ngSubmit)="addProduct()" #productForm="ngForm">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="name">Product Name:</label>
+          <input type="text" id="name" [(ngModel)]="newProduct.name" name="name" required class="form-control">
+        </div>
+        <div class="form-group">
+          <label for="sku">SKU:</label>
+          <input type="text" id="sku" [(ngModel)]="newProduct.sku" name="sku" required class="form-control">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="description">Description:</label>
+        <textarea id="description" [(ngModel)]="newProduct.description" name="description" required class="form-control"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="price">Price ($):</label>
+          <input type="number" id="price" [(ngModel)]="newProduct.price" name="price" required min="0" step="0.01" class="form-control">
+        </div>
+        <div class="form-group">
+          <label for="stock">Stock:</label>
+          <input type="number" id="stock" [(ngModel)]="newProduct.stock" name="stock" required min="0" class="form-control">
+        </div>
+      </div>
+      <button type="submit" [disabled]="!productForm.valid" class="btn btn-primary">Add Product</button>
+      <button type="button" (click)="resetForm(); showAddForm = false" class="btn btn-secondary">Cancel</button>
+    </form>
+  </div>
+
+  <!-- Products List -->
+  <div class="products-list">
+    <div *ngIf="loading" class="loading">Loading products...</div>
+    
+    <div *ngIf="!loading && products.length === 0" class="no-products">
+      <p>No products found. {{ canModifyProducts() ? 'Add some products to get started!' : '' }}</p>
+    </div>
+
+    <div *ngIf="!loading && products.length > 0" class="products-grid">
+      <div *ngFor="let product of products" class="product-card">
+        <!-- Edit Form -->
+        <div *ngIf="editingProduct && editingProduct._id === product._id" class="edit-form">
+          <form (ngSubmit)="updateProduct()" #editForm="ngForm">
+            <div class="form-group">
+              <label>Product Name:</label>
+              <input type="text" [(ngModel)]="editingProduct.name" name="editName" required class="form-control">
+            </div>
+            <div class="form-group">
+              <label>SKU:</label>
+              <input type="text" [(ngModel)]="editingProduct.sku" name="editSku" required class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Description:</label>
+              <textarea [(ngModel)]="editingProduct.description" name="editDescription" required class="form-control"></textarea>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Price ($):</label>
+                <input type="number" [(ngModel)]="editingProduct.price" name="editPrice" required min="0" step="0.01" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Stock:</label>
+                <input type="number" [(ngModel)]="editingProduct.stock" name="editStock" required min="0" class="form-control">
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" [disabled]="!editForm.valid" class="btn btn-primary btn-sm">Save</button>
+              <button type="button" (click)="cancelEdit()" class="btn btn-secondary btn-sm">Cancel</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Product Display -->
+        <div *ngIf="!editingProduct || editingProduct._id !== product._id" class="product-info">
+          <h3>{{ product.name }}</h3>
+          <p class="sku">SKU: {{ product.sku }}</p>
+          <p class="description">{{ product.description }}</p>
+          <div class="product-details">
+            <span class="price">${{ product.price.toFixed(2) }}</span>
+            <span class="stock" [class.low-stock]="product.stock < 10">
+              Stock: {{ product.stock }}
+            </span>
+          </div>
+          <div *ngIf="canModifyProducts()" class="product-actions">
+            <button (click)="editProduct(product)" class="btn btn-primary btn-sm">Edit</button>
+            <button (click)="deleteProduct(product)" class="btn btn-danger btn-sm">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .product-container {
+    background: white;
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 1rem;
+  }
+
+  .header h2 {
+    margin: 0;
+    color: #2c3e50;
+  }
+
+  .add-form {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    border: 1px solid #e9ecef;
+  }
+
+  .add-form h3 {
+    margin-top: 0;
+    color: #2c3e50;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+  }
+
+  .form-control:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+  }
+
+  label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #333;
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 80px;
+  }
+
+  .btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    text-decoration: none;
+    display: inline-block;
+    margin-right: 0.5rem;
+    transition: all 0.2s;
+  }
+
+  .btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  .btn-primary {
+    background-color: #3498db;
+    color: white;
+  }
+
+  .btn-secondary {
+    background-color: #95a5a6;
+    color: white;
+  }
+
+  .btn-danger {
+    background-color: #e74c3c;
+    color: white;
+  }
+
+  .btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+
+  .btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .loading {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+    font-size: 1.1rem;
+  }
+
+  .no-products {
+    text-align: center;
+    padding: 3rem;
+    color: #666;
+  }
+
+  .products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .product-card {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1.5rem;
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .product-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  }
+
+  .product-info h3 {
+    margin: 0 0 0.5rem 0;
+    color: #2c3e50;
+    font-size: 1.25rem;
+  }
+
+  .sku {
+    color: #666;
+    font-size: 0.9rem;
+    margin: 0 0 1rem 0;
+    font-family: monospace;
+    background: #f8f9fa;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    display: inline-block;
+  }
+
+  .description {
+    color: #666;
+    margin-bottom: 1rem;
+    line-height: 1.4;
+  }
+
+  .product-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+  }
+
+  .price {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #27ae60;
+  }
+
+  .stock {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    background: #e8f5e8;
+    color: #27ae60;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  .low-stock {
+    background: #ffeaa7;
+    color: #d63031;
+  }
+
+  .product-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .edit-form {
+    border: 2px solid #3498db;
+    border-radius: 4px;
+    padding: 1rem;
+    background: #f8f9fa;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+</style>
